@@ -24,9 +24,19 @@ I have to figure it out.I want to find a database is as fast as redis.and will s
 - php framwork is lumen 5.6.
 - other software config are all default.
 
+# What actions I test
+
+In the benchmark.I test three actions.
+
+* Insert new session
+* find the inserted session
+* update that session timestmap
 
 # Result
 
 The result is in 3M_result folder.which means that is a 3,000,000 requests result.
 
-And 12M_result is still in testing... 
+same as 12M_result.I test for 12M result because that will over eat redis memory,I want to know so much dataset will or will not different to the 3M dataset
+
+And The winner is All.Yes! All of three databases.there is no big different each other.but redis is still the fastest if you care about performance under 1ms.
+

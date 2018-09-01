@@ -21,7 +21,7 @@ $router->get('/', function () use ($router) {
 });
 
 //Simulate new client Token
-$token = uniqid();
+$token = uniqid("",true);
 
 // Fake Token Data for benchmark
 $example_data = [
@@ -95,15 +95,36 @@ create table session(
 $router->get('/mysql',function() use ($token,$example_data){
     $data = json_encode($example_data);
     
+    //I haven't figur out why laravel make connection is slow even use persisent connection.
+    //So I temporary change to origin pdo connection
+    //And database optimize by this article https://www.percona.com/blog/2007/11/01/innodb-performance-optimization-basics/
+    $mysql_config = config('database.connections.mysql');
+    $db = new PDO("mysql:host={$mysql_config['host']};dbname={$mysql_config['database']}",$mysql_config['username'],$mysql_config['password'],[
+        PDO::ATTR_PERSISTENT => true,
+        PDO::ATTR_EMULATE_PREPARES => true,
+    ]);
+
     //insert new session
     $expiredAt = get_session_expired_at();
-    $r = DB::insert('insert into session values(?,?,?)',[$token,$data,$expiredAt,$data,$expiredAt]);
+    $expiredAt = $expiredAt->format('Y-m-d H:i:s');
+    $stmt = $db->prepare('insert into session(token,data,expired_at) values(?,?,?)');
+    $stmt->bindParam(1, $token);
+    $stmt->bindParam(2, $data);
+    $stmt->bindParam(3, $expiredAt);
+    $stmt->execute();
     
     //find session
-    $r = DB::select('select * from session where token=?',[$token])[0];
+    $stmt = $db->prepare('select * from session where token=?');
+    $stmt->bindParam(1, $token);
+    $stmt->execute();
     
     //update expire time
     $expiredAt = get_session_expired_at();
-    $r = DB::update('update session set data=?,expired_at=? where token=?',[$data,$expiredAt,$token]);
+    $expiredAt = $expiredAt->format('Y-m-d H:i:s');
+    $stmt = $db->prepare('update session set data=?,expired_at=? where token=?');
+    $stmt->bindParam(1, $data);
+    $stmt->bindParam(2,$expiredAt);
+    $stmt->bindParam(3, $token);
+    $stmt->execute();
 });
                 
