@@ -3,8 +3,11 @@
 Homestead.json
 Homestead.yaml
 .env
+composer.lock
 
 #eclipse
 .buildpath
 .settings/
 .project
+
+.DS_Store
