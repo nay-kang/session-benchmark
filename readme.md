@@ -13,6 +13,7 @@ I have to figure it out.I want to find a database which as fast as redis.and wil
 - cassandra v4.0 (lack of support for php,I had to compile the ext by myself)
 - mariadb v10.3 (some times database for )
 - redis v5.0 (for baseline)
+- postgresql v12
 
 # Environment
 
