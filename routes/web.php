@@ -16,8 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 $router->get('/', function () use ($router) {
     //just for benchmark the framework
-    return 'hello world';
-    //return $router->app->version();
+    return $router->app->version();
 });
 
 //Simulate new client Token
@@ -38,6 +37,10 @@ function get_session_expired_at(){
     $d->setTimestamp(time()+SESSION_LIFETIME);
     return $d;
 }
+
+$router->get('/json',function () use ($router,$example_data) {
+    return json_encode($example_data);
+});
 
 /**
  * there steps
@@ -128,3 +131,87 @@ $router->get('/mysql',function() use ($token,$example_data){
     $stmt->execute();
 });
                 
+/*
+create table session.session (
+    "token" text primary key,
+    data text,
+    expired_at timestamp
+);
+
+ */
+$router->get('/cassandra',function() use($token,$example_data){
+    $data = json_encode($example_data);
+
+    $cluster = Cassandra::cluster()->withContactPoints(config('database.connections.cassandra.host'))->build();
+    $keyspace = 'session';
+    $session = $cluster->connect($keyspace);
+
+    //insert new session
+    $expiredAt = get_session_expired_at();
+    $expiredAt = new Cassandra\Timestamp($expiredAt->getTimestamp());
+    $stmt = new Cassandra\SimpleStatement(
+        'insert into session("token",data,expired_at) values(?,?,?)'
+    );
+    // $future = $session->executeAsync($statement);
+    $session->execute($stmt,['arguments'=>[
+        'token' => $token,
+        'data'  => $data,
+        'expired_at'    => $expiredAt
+    ]]);
+
+    // find session
+    $stmt = new Cassandra\SimpleStatement('select * from session where "token"=?');
+    $session->execute($stmt,['arguments'=>['token'=>$token]]);
+
+    //update expire time
+    $expiredAt = get_session_expired_at();
+    $expiredAt = new Cassandra\Timestamp($expiredAt->getTimestamp());
+    $stmt = new Cassandra\SimpleStatement('update session set data=?,expired_at=? where "token"=?');
+    $session->execute($stmt,['arguments'=>[
+        'token' => $token,
+        'data'  => $data,
+        'expired_at'    => $expiredAt
+    ]]);
+
+});
+
+/*
+create table session(
+    token text primary key,
+    data text null,
+    expired_at timestamp null
+);
+try to use jsonb as data column type,but seems php did not support json
+ */
+$router->get('/postgresql',function() use ($token,$example_data){
+    $data = json_encode($example_data);
+    
+    $pg_config = config('database.connections.postgresql');
+    $db = new PDO("pgsql:host={$pg_config['host']};dbname={$pg_config['database']}",$pg_config['username'],$pg_config['password'],[
+        PDO::ATTR_PERSISTENT => true,
+        PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
+    ]);
+
+    //insert new session
+    $expiredAt = get_session_expired_at();
+    $expiredAt = $expiredAt->format('Y-m-d H:i:s');
+    $stmt = $db->prepare('insert into session(token,data,expired_at) values(?,?,?)');
+    $stmt->bindParam(1, $token);
+    $stmt->bindParam(2, $data);
+    $stmt->bindParam(3, $expiredAt);
+    $stmt->execute();
+    
+    //find session
+    $stmt = $db->prepare('select * from session where token=?');
+    $stmt->bindParam(1, $token);
+    $stmt->execute();
+    
+    //update expire time
+    $expiredAt = get_session_expired_at();
+    $expiredAt = $expiredAt->format('Y-m-d H:i:s');
+    $stmt = $db->prepare('update session set data=?,expired_at=? where token=?');
+    $stmt->bindParam(1, $data);
+    $stmt->bindParam(2,$expiredAt);
+    $stmt->bindParam(3, $token);
+    $stmt->execute();
+});

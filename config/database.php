@@ -62,6 +62,17 @@ return [
         
         'mongodb' => [
             'uri' => env('MONGODB_URI','mongodb://127.0.0.1')
+        ],
+
+        'cassandra' => [
+            'host' => env('CASSANDRA_HOST','localhost')
+        ],
+        'postgresql' => [
+            'host'      => env('PG_HOST','localhost'),
+            'port'      => env('PG_PORT', 5432),
+            'database'  => env('PG_DATABASE', 'forge'),
+            'username'  => env('PG_USERNAME', 'forge'),
+            'password'  => env('PG_PASSWORD', ''),
         ]
 
     ],

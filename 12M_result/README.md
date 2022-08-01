@@ -1,20 +1,26 @@
 # Here is a short result
 
-Database |avg time  | 99% time | QPS    | disk usage | CPU load
--------- | -------  | -------- | ------ | ------------ | --------
-mongodb  | 7.503ms  | 16ms     | 533.14 | 0.9G         | N/A
-mariadb  | 7.538ms  | 15ms     | 530.67 | 3.2G         | 2.5
+Database |avg time  | 99% time | QPS    | disk usage   | memory usage|  CPU load
+-------- | -------  | -------- | ------ | ------------ | ----------  | ---------
+php only | 2.490ms  | 6ms      | 1606.22 | N/A         | N/A         | N/A
+php json | 2.710ms  | 6ms      | 1476.04 | N/A         | N/A         | N/A
+mongodb  | 4.910ms  | 9ms      | 814.61 | 0.7G         | 509MB       | 1.2
+redis    | 5.882ms  | 12ms     | 679.98 | 0.6G         | 1421MB      | 0.7
+mariadb  | 6.163ms  | 12ms     | 648.99 | 3.1G         | 2081MB      | 2.0
+cassandra| 6.287ms  | 18ms     | 636.22 | 1.0G         | 1551MB      | 1.0
+postgresql| 6.381ms | 11ms     | 626.89 | 3.2G         | 1048MB      | 1.2
 
+The result shows whichever database you use.In session(token) suition.It only take 3ms(another 3ms consume by php and lumen framework) to do that.
 
-database still run under virtual machine with 1 CPU and 2G RAM
+the winner is mongodb,not only wined by the least time consume,also winned by disk, memory usage and CPU load.and I guess mongodb use data compress so it's disk usage is so small and no need json encode also reduce the total time.
 
-As 3M requests is the most for redis.so this 12M requests round benchmark redis will not present.
+While benchmark meet a lumen problem. lumen init mysql connection takes too long about 10ms.I haven't figure that out.so I wrote pure mariadb pdo code to do the benchmark.
 
-While benchmark mariadb meet lots of problems.
+the postgresql also has some advantages compare to traditional relation database. that use less memory and CPU. I can't find a way to store jsonb through php, if that work then maybe has better disk usage.
 
-* lumen init mysql connection takes too long about 10ms.I haven't figure that out.so I wrote pure mariadb pdo code to do the benchmark.
-* eat whole disk space.because mariadb default enable binlog.thus mongodb not enable cluster mode.so I disable binlog
-* eat whole memory.so I have to adjust some buffer parameter to mariadb.
+the redis has little advantages on the CPU load item, because it use single core. so it keep the same result while using half compute resources.
 
+I think the total loser is mariadb in this scenario.
 
-The result shows whichever database you use.In session(token) suition.It only take 2ms(5ms consume by lumen framework) to do that.and I guess mongodb use data compress so it's disk usage is so small.
+## TODO
+bench all database in Python.
