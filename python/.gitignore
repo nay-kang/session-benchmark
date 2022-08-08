@@ -1,0 +1,7 @@
+.venv
+
+**/*.pyc
+
+.pgpass
+mysql.cnf
+db.sqlite3
